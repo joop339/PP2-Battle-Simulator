@@ -86,4 +86,8 @@ using namespace Tmpl8;
 
 #include "game.h"
 
+//added
+
+#include "grid.h"
+
 // clang-format on

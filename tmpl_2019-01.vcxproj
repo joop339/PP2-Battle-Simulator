@@ -15,7 +15,7 @@
     <ProjectGuid>{D8FE2186-4BF0-4B89-913F-6C26818E5AC5}</ProjectGuid>
     <RootNamespace>Tmpl8</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
@@ -79,6 +79,7 @@
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -119,6 +120,7 @@
   <ItemGroup>
     <ClCompile Include="explosion.cpp" />
     <ClCompile Include="game.cpp" />
+    <ClCompile Include="grid.cpp" />
     <ClCompile Include="particle_beam.cpp" />
     <ClCompile Include="rocket.cpp" />
     <ClCompile Include="smoke.cpp" />
@@ -131,6 +133,7 @@
   <ItemGroup>
     <ClInclude Include="explosion.h" />
     <ClInclude Include="game.h" />
+    <ClInclude Include="grid.h" />
     <ClInclude Include="particle_beam.h" />
     <ClInclude Include="precomp.h" />
     <ClInclude Include="rocket.h" />

@@ -38,6 +38,8 @@ Tank::~Tank()
 
 void Tank::tick()
 {
+	old_position = position;
+
     vec2 direction = (target - position).normalized();
 
     //Update using accumulated force

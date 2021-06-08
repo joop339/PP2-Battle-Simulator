@@ -7,6 +7,7 @@ class Tank;
 class Rocket;
 class Smoke;
 class Particle_beam;
+class Grid;
 
 class Game
 {
@@ -55,6 +56,7 @@ class Game
     long long frame_count = 0;
 
     bool lock_update = false;
+
 };
 
 }; // namespace Tmpl8

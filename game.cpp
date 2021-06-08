@@ -46,6 +46,10 @@ const static vec2 rocket_size(25, 24);
 const static float tank_radius = 8.5f;
 const static float rocket_radius = 10.f;
 
+//added
+
+Grid grid;
+
 // -----------------------------------------------------------
 // Initialize the application
 // -----------------------------------------------------------
@@ -76,6 +80,12 @@ void Game::init()
     {
         tanks.push_back(Tank(start_red_x + ((i % max_rows) * spacing), start_red_y + ((i / max_rows) * spacing), RED, &tank_red, &smoke, 80, 80, tank_radius, TANK_MAX_HEALTH, TANK_MAX_SPEED));
     }
+
+	//Add tanks to grid
+	for (auto& tank : tanks)
+	{
+		grid.add(&tank);
+	}
 
     particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
     particle_beams.push_back(Particle_beam(vec2(80, 80), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
@@ -128,7 +138,7 @@ void Game::update(float deltaTime)
         if (tank.active)
         {
             //Check tank collision and nudge tanks away from each other
-            for (Tank& o_tank : tanks)
+            /*for (Tank& o_tank : tanks)
             {
                 if (&tank == &o_tank) continue;
                 
@@ -142,10 +152,13 @@ void Game::update(float deltaTime)
                 {
                     tank.push(dir.normalized(), 1.f);
                 }
-            }
+            }*/
 
             //Move tanks according to speed and nudges (see above) also reload
             tank.tick();
+
+			//Move tank to its new cell
+			grid.move(&tank);
 
             //Shoot at closest target if reloaded
             if (tank.rocket_reloaded())
