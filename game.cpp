@@ -46,6 +46,9 @@ const static vec2 rocket_size(25, 24);
 const static float tank_radius = 8.5f;
 const static float rocket_radius = 10.f;
 
+const unsigned int threadCount = thread::hardware_concurrency();
+ThreadPool tp(threadCount);
+
 // -----------------------------------------------------------
 // Initialize the application
 // -----------------------------------------------------------
@@ -127,22 +130,24 @@ void Game::update(float deltaTime)
     {
         if (tank.active)
         {
-            //Check tank collision and nudge tanks away from each other
-            for (Tank& o_tank : tanks)
-            {
-                if (&tank == &o_tank) continue;
-                
-                vec2 dir = tank.get_position() - o_tank.get_position();
-                float dir_squared_len = dir.sqr_length();
-
-                float col_squared_len = (tank.get_collision_radius() + o_tank.get_collision_radius());
-                col_squared_len *= col_squared_len;
-
-                if (dir_squared_len < col_squared_len)
+            tp.enqueue([&] {
+                //Check tank collision and nudge tanks away from each other
+                for (Tank& o_tank : tanks)
                 {
-                    tank.push(dir.normalized(), 1.f);
+                    if (&tank == &o_tank) continue;
+
+                    vec2 dir = tank.get_position() - o_tank.get_position();
+                    float dir_squared_len = dir.sqr_length();
+
+                    float col_squared_len = (tank.get_collision_radius() + o_tank.get_collision_radius());
+                    col_squared_len *= col_squared_len;
+
+                    if (dir_squared_len < col_squared_len)
+                    {
+                        tank.push(dir.normalized(), 1.f);
+                    }
                 }
-            }
+                });
 
             //Move tanks according to speed and nudges (see above) also reload
             tank.tick();
@@ -175,14 +180,16 @@ void Game::update(float deltaTime)
         {
             if (tank.active && (tank.allignment != rocket.allignment) && rocket.intersects(tank.position, tank.collision_radius))
             {
-                explosions.push_back(Explosion(&explosion, tank.position));
+                //tp.enqueue([&] {
+                    explosions.push_back(Explosion(&explosion, tank.position));
 
-                if (tank.hit(ROCKET_HIT_VALUE))
-                {
-                    smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-                }
+                    if (tank.hit(ROCKET_HIT_VALUE))
+                    {
+                        smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
+                    }
 
-                rocket.active = false;
+                    rocket.active = false;
+                    //});
                 break;
             }
         }
