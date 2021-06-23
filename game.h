@@ -7,7 +7,6 @@ class Tank;
 class Rocket;
 class Smoke;
 class Particle_beam;
-class Grid;
 
 class Game
 {

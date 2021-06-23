@@ -17,7 +17,7 @@
 #define MAX_FRAMES 2000
 
 //Global performance timer
-#define REF_PERFORMANCE 39568 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 79126 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -82,10 +82,10 @@ void Game::init()
     }
 
 	//Add tanks to grid
-	for (auto& tank : tanks)
+	/*for (auto &tank : tanks)
 	{
 		grid.add(&tank);
-	}
+	}*/
 
     particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
     particle_beams.push_back(Particle_beam(vec2(80, 80), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
@@ -132,6 +132,8 @@ Tank& Game::find_closest_enemy(Tank& current_tank)
 // -----------------------------------------------------------
 void Game::update(float deltaTime)
 {
+	grid.handleCollisions();
+	
     //Update tanks
     for (Tank& tank : tanks)
     {
@@ -153,7 +155,7 @@ void Game::update(float deltaTime)
                     tank.push(dir.normalized(), 1.f);
                 }
             }*/
-
+			
             //Move tanks according to speed and nudges (see above) also reload
             tank.tick();
 
@@ -171,6 +173,8 @@ void Game::update(float deltaTime)
             }
         }
     }
+
+	
 
     //Update smoke plumes
     for (Smoke& smoke : smokes)

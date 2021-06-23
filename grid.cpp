@@ -8,26 +8,24 @@ Grid::Grid()
     // Fill grid with empty vectors.
     for (int y = 0; y < NUM_CELLS; y++)
     {
-        vector<vector<Tank*>> vector_tank_ptrs;
-       
+        vector<vector<Tank*>> rows;
+;
         for (int x = 0; x < NUM_CELLS; x++)
         {
-            vector<Tank*> tankptrs;
-            vector_tank_ptrs.emplace_back(tankptrs);
+            vector<Tank*> cols;
+            rows.push_back(cols);
         }
-        cells.emplace_back(vector_tank_ptrs);
+		cells.push_back(rows);
     }
 };
-//Grid::~Grid(){};
 
 void Grid::add(Tank* tank)
 {
     // Determine which grid cell it's in.
     int cellX = (int)(tank->position.x / (float)Grid::CELL_SIZE);
     int cellY = (int)(tank->position.y / (float)Grid::CELL_SIZE);
-
-    //// Add to the list for the cell it's in.
-    cells[cellX][cellY].emplace_back(tank);
+    // Add to the list for the cell it's in.
+    cells[cellX][cellY].push_back(tank);
 }
 
 void Grid::handleCollisions()
@@ -36,7 +34,9 @@ void Grid::handleCollisions()
     {
         for (int y = 0; y < NUM_CELLS; y++)
         {
-            handleCell(x, y);
+
+			handleCell(x, y);
+            
         }
     }
 }
@@ -48,24 +48,24 @@ void Grid::handleCell(int x, int y)
     handleUnit(cells[x][y], cells[x][y]);
 
     // Also try the neighboring cells.
-    if (x > 0 && y > 0) handleUnit(cells[x][y], cells[x - 1][y - 1]);
-    if (x > 0) handleUnit(cells[x][y], cells[x - 1][y]);
-    if (y > 0) handleUnit(cells[x][y], cells[x][y - 1]);
+    if (x > 0 && y > 0) handleUnit(cells[x][y], cells[(int)x - 1][(int)y - 1]);
+    if (x > 0) handleUnit(cells[x][y], cells[(int)x - 1][y]);
+    if (y > 0) handleUnit(cells[x][y], cells[x][(int)y - 1]);
     if (x > 0 && y < NUM_CELLS - 1)
     {
-        handleUnit(cells[x][y], cells[x - 1][y + 1]);
+        handleUnit(cells[x][y], cells[(int)x - 1][(int)y + 1]);
     }
 }
 
 void Grid::handleUnit(vector<Tank*> &tank_ptrs, vector<Tank*> &oTank_ptrs)
 {
-    for (auto tank : tank_ptrs)
+    for (Tank* tank : tank_ptrs)
     {
         if (tank->active)
         {
-			for (auto o_tank : tank_ptrs)
+			for (Tank* o_tank : oTank_ptrs)
 			{
-				if (&tank == &o_tank) continue;
+				if (tank == o_tank) continue;
 
 				vec2 dir = tank->get_position() - o_tank->get_position();
 				float dir_squared_len = dir.sqr_length();
@@ -89,9 +89,13 @@ void Grid::move(Tank* tank)
     int oldCellX = (int)(tank->old_position.x / (float)Grid::CELL_SIZE);
     int oldCellY = (int)(tank->old_position.y / (float)Grid::CELL_SIZE);
 
+	//std::cout << tank->old_position.x << " " << tank->old_position.y << std::endl;
+
     // See which cell it's moving to.
     int cellX = (int)(tank->position.x / (float)Grid::CELL_SIZE);
     int cellY = (int)(tank->position.y / (float)Grid::CELL_SIZE);
+
+	//std::cout << tank->position.x <<" "<< tank->position.y << std::endl;
 
     // If it didn't change cells, we're done.
     if (oldCellX == cellX && oldCellY == cellY) return;
