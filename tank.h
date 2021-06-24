@@ -53,7 +53,10 @@ class Tank
     int current_frame;
     Sprite* tank_sprite;
     Sprite* smoke_sprite;
+	
+	//added
 
+	vec2 old_position;
 };
 
 } // namespace Tmpl8

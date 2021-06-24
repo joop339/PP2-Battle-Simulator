@@ -15,7 +15,8 @@ Tank::Tank(
     float collision_radius,
     int health,
     float max_speed)
-    : position(pos_x, pos_y),
+    : old_position(pos_x, pos_y),
+	  position(pos_x, pos_y),
       allignment(allignment),
       target(tar_x, tar_y),
       health(health),
@@ -29,6 +30,7 @@ Tank::Tank(
       current_frame(0),
       tank_sprite(tank_sprite),
       smoke_sprite(smoke_sprite)
+	  
 {
 }
 
@@ -38,6 +40,8 @@ Tank::~Tank()
 
 void Tank::tick()
 {
+	old_position = position;
+
     vec2 direction = (target - position).normalized();
 
     //Update using accumulated force

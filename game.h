@@ -46,10 +46,13 @@ class Game
     Surface* screen;
 
     vector<Tank> tanks;
+    vector<int> blue_tanks_health;
+    vector<int> red_tanks_health;
     vector<Rocket> rockets;
     vector<Smoke> smokes;
     vector<Explosion> explosions;
     vector<Particle_beam> particle_beams;
+    Grid grid;
 
     Font* frame_count_font;
     long long frame_count = 0;
