@@ -18,7 +18,6 @@ class Grid
     static const int NUM_CELLS = 80;
     static const int CELL_SIZE = 25;
 
-  private:
     vector<vector<vector<Tank*>>> cells;
 
 };

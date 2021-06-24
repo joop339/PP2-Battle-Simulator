@@ -16,6 +16,7 @@ Grid::Grid()
             rows.push_back(cols);
         }
 		cells.push_back(rows);
+
     }
 };
 
@@ -49,11 +50,19 @@ void Grid::handleCell(int x, int y)
 
     // Also try the neighboring cells.
     if (x > 0 && y > 0) handleUnit(cells[x][y], cells[(int)x - 1][(int)y - 1]);
+    //if (x > 0 && y > 0) handleUnit(cells[x][y], cells[(int)x + 1][(int)y + 1]);
+    if (x < NUM_CELLS -1 && y < NUM_CELLS - 1) handleUnit(cells[x][y], cells[(int)x + 1][(int)y + 1]);
     if (x > 0) handleUnit(cells[x][y], cells[(int)x - 1][y]);
+    if (x > 0) handleUnit(cells[x][y], cells[(int)x + 1][y]);
     if (y > 0) handleUnit(cells[x][y], cells[x][(int)y - 1]);
+    if (y > 0) handleUnit(cells[x][y], cells[x][(int)y + 1]);
     if (x > 0 && y < NUM_CELLS - 1)
     {
         handleUnit(cells[x][y], cells[(int)x - 1][(int)y + 1]);
+    }
+    if (x < NUM_CELLS && y > 0) 
+    {
+        handleUnit(cells[x][y], cells[(int)x + 1][(int)y - 1]);
     }
 }
 
@@ -77,6 +86,7 @@ void Grid::handleUnit(vector<Tank*> &tank_ptrs, vector<Tank*> &oTank_ptrs)
                     {
                         tank->push(dir.normalized(), 1.f);
                     }
+                    
                 }
             }
         }
@@ -100,10 +110,13 @@ void Grid::move(Tank* tank)
     // If it didn't change cells, we're done.
     if (oldCellX == cellX && oldCellY == cellY) return;
 
-    // erase from old cell
-    cells[oldCellX][oldCellY].erase(std::remove/*_if*/(cells[oldCellX][oldCellY].begin(), cells[oldCellX][oldCellY].end(), tank/*[tank](const Tank* otank) { return tank == otank; }*/), cells[oldCellX][oldCellY].end());
-    // Add it back to the grid at its new cell.
-    add(tank);
+    if (oldCellX != cellX || oldCellY != cellY)
+    {
+        // erase from old cell
+        cells[oldCellX][oldCellY].erase(std::remove(cells[oldCellX][oldCellY].begin(), cells[oldCellX][oldCellY].end(), tank), cells[oldCellX][oldCellY].end());
+        // Add it back to the grid at its new cell.
+        add(tank);
+    }
 }
 
 } // namespace Tmpl8
