@@ -83,10 +83,10 @@ void Game::init()
 		tanks.push_back(tankRed);
 		grid.add(&tankRed);
 	}
-	for (auto& tank : tanks)
+	/*for (auto& tank : tanks)
 	{
 		grid.add(&tank);
-	}
+	}*/
 
 	particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
 	particle_beams.push_back(Particle_beam(vec2(80, 80), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
@@ -310,8 +310,10 @@ void Game::draw()
 	}
 
 	//Sort tankbar health before drawing.
-	sort(blue_tanks_health.begin(), blue_tanks_health.end());
-	sort(red_tanks_health.begin(), red_tanks_health.end());
+	/*sort(blue_tanks_health.begin(), blue_tanks_health.end());
+	sort(red_tanks_health.begin(), red_tanks_health.end());*/
+	red_tanks_health = merge_sort(red_tanks_health);
+	blue_tanks_health = merge_sort(blue_tanks_health);
 
 	//Draw sorted health bars (using a list that only contains usefull information instead of every object in tanks.)
 	for (int t = 0; t < 2; t++)
@@ -347,6 +349,77 @@ void Game::draw()
 		}
 	}
 }
+
+vector<int> Tmpl8::Game::merge(vector<int> left, vector<int> right)
+{
+	vector<int> result;
+	while (left.size() > 0 || right.size() > 0) // one of the lists is not empty
+	{
+		if (left.size() > 0 && right.size() > 0) // both lists are not empty
+		{
+			// check for smallest first elem
+			// add smallest to result list
+			// remove smallest from origin
+			if (left.front() <= right.front()) // left[0] < right[0]
+			{
+				result.push_back(left.front());
+				left.erase(left.begin());
+			}
+			else
+			{
+				result.push_back(right.front());
+				right.erase(right.begin());
+			}
+		}
+		else if (left.size() > 0) // left still has elems, push its elems to result
+		{
+			for (int number : left)
+			{
+				result.push_back(number);
+			}
+			break;
+		}
+		else if (right.size() > 0) // right still has elems, push its elems to result
+		{
+			for (int number : right) {
+				result.push_back(number);
+			}
+			break;
+		}
+	}
+	return result;
+}
+
+vector<int> Tmpl8::Game::merge_sort(vector<int> unsorted)
+{
+	if (unsorted.size() <= 1) // if list is empty or just one elem
+	{
+		return unsorted; // return cos it's already sorted
+	}
+
+	vector<int> left;
+	vector<int> right;
+	vector<int> result;
+
+	int middle = (unsorted.size() + 1) / 2; // find middle index
+
+	for (int i = 0; i < middle; i++)
+	{
+		left.push_back(unsorted[i]); // push left side to left
+	}
+
+	for (int i = middle; i < unsorted.size(); i++)
+	{
+		right.push_back(unsorted[i]);
+	}
+
+	left = merge_sort(left); // divide until 0 or 1 elem is left
+	right = merge_sort(right); // divide until 0 or 1 elem is left
+	result = merge(left, right); // merge left and right
+
+	return result;
+}
+
 
 // -----------------------------------------------------------
 // Sort tanks by health value using insertion sort
@@ -435,3 +508,7 @@ void Game::tick(float deltaTime)
 	string frame_count_string = "FRAME: " + std::to_string(frame_count);
 	frame_count_font->print(screen, frame_count_string.c_str(), 350, 580);
 }
+
+
+
+
