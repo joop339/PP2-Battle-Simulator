@@ -108,15 +108,15 @@ Tank& Game::find_closest_enemy(Tank& current_tank)
 	float closest_distance = numeric_limits<float>::infinity();
 	int closest_index = 0;
 
-	for (int i = 0; i < tanks.size(); i++)
+	for (int i = 0; i < tanks.size(); i++) //N
 	{
-		if (tanks.at(i).allignment != current_tank.allignment && tanks.at(i).active)
+		if (tanks.at(i).allignment != current_tank.allignment && tanks.at(i).active)// 1
 		{
-			float sqr_dist = fabsf((tanks.at(i).get_position() - current_tank.get_position()).sqr_length());
-			if (sqr_dist < closest_distance)
+			float sqr_dist = fabsf((tanks.at(i).get_position() - current_tank.get_position()).sqr_length());// 1
+			if (sqr_dist < closest_distance) //1
 			{
-				closest_distance = sqr_dist;
-				closest_index = i;
+				closest_distance = sqr_dist; //1
+				closest_index = i; //1
 			}
 		}
 	}
@@ -226,28 +226,28 @@ void Game::update(float deltaTime)
 	rockets.erase(std::remove_if(rockets.begin(), rockets.end(), [](const Rocket& rocket) { return !rocket.active; }), rockets.end());
 
 	//Update particle beams
-	for (Particle_beam& particle_beam : particle_beams)
+	for (Particle_beam& particle_beam : particle_beams) //N
 	{
-		particle_beam.tick(tanks);
+		particle_beam.tick(tanks); //1
 
 		// positions of the cells where particle_beam collision has to be detected.
-		int particle_beam_left = particle_beam.min_position.x / grid.CELL_SIZE;
-		int particle_beam_right = (particle_beam.min_position.x + particle_beams[0].max_position.x) / grid.CELL_SIZE;
-		int particle_beam_top = particle_beam.min_position.y / grid.CELL_SIZE;
-		int particle_beam_bottom = (particle_beam.min_position.y + particle_beams[0].max_position.y) / grid.CELL_SIZE;
+		int particle_beam_left = particle_beam.min_position.x / grid.CELL_SIZE; //1
+		int particle_beam_right = (particle_beam.min_position.x + particle_beams[0].max_position.x) / grid.CELL_SIZE; //1
+		int particle_beam_top = particle_beam.min_position.y / grid.CELL_SIZE; //1
+		int particle_beam_bottom = (particle_beam.min_position.y + particle_beams[0].max_position.y) / grid.CELL_SIZE; //1
 
 		//Damage all tanks within the damage window of the beam (the window is an axis-aligned bounding box)
 		for (int x = particle_beam_left; x <= particle_beam_right; x++)
 			for (int y = particle_beam_top; y <= particle_beam_bottom; y++)
 			{
 				{
-					for (Tank* tank : grid.cells[x][y])
+					for (Tank* tank : grid.cells[x][y]) //M
 					{
-						if (tank->active && particle_beam.rectangle.intersects_circle(tank->get_position(), tank->get_collision_radius()))
+						if (tank->active && particle_beam.rectangle.intersects_circle(tank->get_position(), tank->get_collision_radius())) //1
 						{
-							if (tank->hit(particle_beam.damage))
+							if (tank->hit(particle_beam.damage)) //1
 							{
-								smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
+								smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48))); //1
 							}
 						}
 					}
