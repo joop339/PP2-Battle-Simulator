@@ -46,6 +46,8 @@ const static vec2 rocket_size(25, 24);
 const static float tank_radius = 8.5f;
 const static float rocket_radius = 10.f;
 
+std::vector<std::future<void>> futs;
+
 const unsigned int threadCount = thread::hardware_concurrency();
 ThreadPool tp(threadCount);
 
@@ -88,6 +90,12 @@ void Game::init()
 		grid.add(&tank);
 	}
 
+
+	for (int i = 0; i < threadCount; i++)
+	{
+		futs.push_back(tp.enqueue([i]() { std::cout << "Hello from thread " << i << std::endl; }));
+	}
+
 	particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
 	particle_beams.push_back(Particle_beam(vec2(80, 80), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
 	particle_beams.push_back(Particle_beam(vec2(1200, 600), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
@@ -105,23 +113,27 @@ void Game::shutdown()
 // -----------------------------------------------------------
 Tank& Game::find_closest_enemy(Tank& current_tank)
 {
-	float closest_distance = numeric_limits<float>::infinity();
-	int closest_index = 0;
-
-	for (int i = 0; i < tanks.size(); i++) //N
+	for (auto& fut : futs)
 	{
-		if (tanks.at(i).allignment != current_tank.allignment && tanks.at(i).active)// 1
+		float closest_distance = numeric_limits<float>::infinity();
+		int closest_index = 0;
+		for (int i = 0; i < tanks.size(); i++) //N
 		{
-			float sqr_dist = fabsf((tanks.at(i).get_position() - current_tank.get_position()).sqr_length());// 1
-			if (sqr_dist < closest_distance) //1
+			if (tanks.at(i).allignment != current_tank.allignment && tanks.at(i).active)// 1
 			{
-				closest_distance = sqr_dist; //1
-				closest_index = i; //1
+				float sqr_dist = fabsf((tanks.at(i).get_position() - current_tank.get_position()).sqr_length());// 1
+				if (sqr_dist < closest_distance) //1
+				{
+					closest_distance = sqr_dist; //1
+					closest_index = i; //1
+				}
 			}
 		}
-	}
 
-	return tanks.at(closest_index);
+
+		return tanks.at(closest_index);
+		fut.wait();
+	}
 }
 
 // -----------------------------------------------------------
@@ -136,6 +148,7 @@ void Game::update(float deltaTime)
 	//Update tanks
 	//tp.enqueue([&] {
 	grid.handleCollisions();
+
 	//});
 
 	//Add bluetank healthbars to list
@@ -203,23 +216,23 @@ void Game::update(float deltaTime)
 		rocket.tick();
 
 		//Check if rocket collides with enemy tank, spawn explosion and if tank is destroyed spawn a smoke plume
-		for (Tank& tank : tanks)
-		{
-			if (tank.active && (tank.allignment != rocket.allignment) && rocket.intersects(tank.position, tank.collision_radius))
+			for (Tank& tank : tanks)
 			{
-				//tp.enqueue([&] {
-				explosions.push_back(Explosion(&explosion, tank.position));
-
-				if (tank.hit(ROCKET_HIT_VALUE))
+				if (tank.active && (tank.allignment != rocket.allignment) && rocket.intersects(tank.position, tank.collision_radius))
 				{
-					smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-				}
+					//tp.enqueue([&] {
+					explosions.push_back(Explosion(&explosion, tank.position));
 
-				rocket.active = false;
-				//});
-				break;
+					if (tank.hit(ROCKET_HIT_VALUE))
+					{
+						smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
+					}
+
+					rocket.active = false;
+					//});
+					break;
+				}
 			}
-		}
 	}
 
 	//Remove exploded rockets with remove erase idiom
@@ -237,23 +250,27 @@ void Game::update(float deltaTime)
 		int particle_beam_bottom = (particle_beam.min_position.y + particle_beams[0].max_position.y) / grid.CELL_SIZE; //1
 
 		//Damage all tanks within the damage window of the beam (the window is an axis-aligned bounding box)
-		for (int x = particle_beam_left; x <= particle_beam_right; x++)
-			for (int y = particle_beam_top; y <= particle_beam_bottom; y++)
-			{
+		for (auto& fut : futs)
+		{
+			for (int x = particle_beam_left; x <= particle_beam_right; x++)
+				for (int y = particle_beam_top; y <= particle_beam_bottom; y++)
 				{
-					for (Tank* tank : grid.cells[x][y]) //M
 					{
-						if (tank->active && particle_beam.rectangle.intersects_circle(tank->get_position(), tank->get_collision_radius())) //1
+						for (Tank* tank : grid.cells[x][y]) //M
 						{
-							if (tank->hit(particle_beam.damage)) //1
+							if (tank->active && particle_beam.rectangle.intersects_circle(tank->get_position(), tank->get_collision_radius())) //1
 							{
-								smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48))); //1
+								if (tank->hit(particle_beam.damage)) //1
+								{
+									smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48))); //1
+								}
 							}
 						}
 					}
-				}
 
-			}
+				}
+			fut.wait();
+		}
 	}
 
 	//Update explosion sprites and remove when done with remove erase idiom
@@ -356,27 +373,30 @@ void Tmpl8::Game::insertion_sort_tanks_health(const std::vector<Tank>& original,
 	const int NUM_TANKS = end - begin;
 	sorted_tanks.reserve(NUM_TANKS);
 	sorted_tanks.emplace_back(&original.at(begin));
-
-	for (int i = begin + 1; i < (begin + NUM_TANKS); i++)
+	for (auto& fut : futs)
 	{
-		const Tank& current_tank = original.at(i);
-
-		for (int s = (int)sorted_tanks.size() - 1; s >= 0; s--)
+		for (int i = begin + 1; i < (begin + NUM_TANKS); i++)
 		{
-			const Tank* current_checking_tank = sorted_tanks.at(s);
+			const Tank& current_tank = original.at(i);
 
-			if ((current_checking_tank->compare_health(current_tank) <= 0))
+			for (int s = (int)sorted_tanks.size() - 1; s >= 0; s--)
 			{
-				sorted_tanks.insert(1 + sorted_tanks.begin() + s, &current_tank);
-				break;
-			}
+				const Tank* current_checking_tank = sorted_tanks.at(s);
 
-			if (s == 0)
-			{
-				sorted_tanks.insert(sorted_tanks.begin(), &current_tank);
-				break;
+				if ((current_checking_tank->compare_health(current_tank) <= 0))
+				{
+					sorted_tanks.insert(1 + sorted_tanks.begin() + s, &current_tank);
+					break;
+				}
+
+				if (s == 0)
+				{
+					sorted_tanks.insert(sorted_tanks.begin(), &current_tank);
+					break;
+				}
 			}
 		}
+		fut.wait();
 	}
 }
 
