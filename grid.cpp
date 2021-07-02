@@ -53,14 +53,14 @@ void Grid::handleCell(int x, int y)
     //if (x > 0 && y > 0) handleUnit(cells[x][y], cells[(int)x + 1][(int)y + 1]);
     if (x < NUM_CELLS -1 && y < NUM_CELLS - 1) handleUnit(cells[x][y], cells[(int)x + 1][(int)y + 1]);
     if (x > 0) handleUnit(cells[x][y], cells[(int)x - 1][y]);
-    if (x > 0) handleUnit(cells[x][y], cells[(int)x + 1][y]);
+    if (x < NUM_CELLS -1) handleUnit(cells[x][y], cells[(int)x + 1][y]);
     if (y > 0) handleUnit(cells[x][y], cells[x][(int)y - 1]);
-    if (y > 0) handleUnit(cells[x][y], cells[x][(int)y + 1]);
+    if (y < NUM_CELLS - 1 ) handleUnit(cells[x][y], cells[x][(int)y + 1]);
     if (x > 0 && y < NUM_CELLS - 1)
     {
         handleUnit(cells[x][y], cells[(int)x - 1][(int)y + 1]);
     }
-    if (x < NUM_CELLS && y > 0) 
+    if (x < NUM_CELLS - 1 && y > 0) 
     {
         handleUnit(cells[x][y], cells[(int)x + 1][(int)y - 1]);
     }
