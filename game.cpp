@@ -246,22 +246,18 @@ void Game::update(float deltaTime)
 		int particle_beam_bottom = (particle_beam.min_position.y + particle_beams[0].max_position.y) / grid.CELL_SIZE; //1
 
 		//Damage all tanks within the collision area.
-		for (auto& fut : futs)
-		{
-			for (int x = particle_beam_left; x <= particle_beam_right; x++)
-				for (int y = particle_beam_top; y <= particle_beam_bottom; y++)
-					for (Tank* tank : grid.cells[x][y]) //M
+		for (int x = particle_beam_left; x <= particle_beam_right; x++)
+			for (int y = particle_beam_top; y <= particle_beam_bottom; y++)
+				for (Tank* tank : grid.cells[x][y]) //M
+				{
+					if (tank->active && particle_beam.rectangle.intersects_circle(tank->get_position(), tank->get_collision_radius())) //1
 					{
-						if (tank->active && particle_beam.rectangle.intersects_circle(tank->get_position(), tank->get_collision_radius())) //1
+						if (tank->hit(particle_beam.damage)) //1
 						{
-							if (tank->hit(particle_beam.damage)) //1
-							{
-								smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48))); //1
-							}
+							smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48))); //1
 						}
 					}
-			fut.wait();
-		}
+				}
 	}
 
 	//Update explosion sprites and remove when done with remove erase idiom
