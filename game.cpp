@@ -47,9 +47,13 @@ const static float tank_radius = 8.5f;
 const static float rocket_radius = 10.f;
 
 std::vector<std::future<void>> futs;
+std::vector<std::future<void>> futs2;
 
 const unsigned int threadCount = thread::hardware_concurrency(); //Asign threadCount based on available threads on this pc
 ThreadPool tp(threadCount);
+int testCount = 2;
+
+std::mutex myMutex;
 
 // -----------------------------------------------------------
 // Initialize the application
@@ -87,10 +91,10 @@ void Game::init()
 	}
 
 	// Spawn Threads.
-	for (int i = 0; i < threadCount; i++)
-	{
-		futs.push_back(tp.enqueue([i]() { std::cout << "Hello from thread " << i << std::endl; }));
-	}
+	//for (int i = 0; i < threadCount; i++)
+	//{
+	//	futs.push_back(tp.enqueue([i]() { std::cout << "Hello from thread " << i << std::endl; }));
+	//}
 
 	particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
 	particle_beams.push_back(Particle_beam(vec2(80, 80), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
@@ -139,6 +143,8 @@ bool CompareAllignment(Tank& tank1, Tank& tank2)
 	return false;
 }
 
+
+
 // -----------------------------------------------------------
 // Update the game state:
 // Move all objects
@@ -151,7 +157,7 @@ void Game::update(float deltaTime)
 	//Update tanks
 	grid.handleCollisions();
 
-	sort(tanks.begin(), tanks.end(), CompareAllignment);
+	sort(tanks.begin(), tanks.end(), CompareAllignment); //Sort tanks for healthbar code.
 	blue_tanks_health.clear();
 	red_tanks_health.clear();
 
@@ -167,68 +173,40 @@ void Game::update(float deltaTime)
 		red_tanks_health.push_back(tanks[i].health);
 	}
 
-	for (Tank& tank : tanks)
-	{
-		if (tank.active)
-		{
-			//Move tanks according to speed and nudges (see above) also reload
-			tank.tick();
-			grid.move(&tank);
-
-			//Shoot at closest target if reloaded
-			if (tank.rocket_reloaded())
-			{
-				Tank& target = find_closest_enemy(tank);
-
-				rockets.push_back(Rocket(tank.position, (target.get_position() - tank.position).normalized() * 3, rocket_radius, tank.allignment, ((tank.allignment == RED) ? &rocket_red : &rocket_blue)));
-
-				tank.reload_rocket();
-			}
-		}
-	}
-
 	//Update smoke plumes
 	for (Smoke& smoke : smokes)
 	{
 		smoke.tick();
 	}
 
-	//Update rockets
-	for (Rocket& rocket : rockets) //N
+	for (int i = 1; i <= testCount; i++)
 	{
-		rocket.tick(); //1
+		futs2.push_back(tp.enqueue([&, i]
+			{
+				updateTanks(i);
+			}));
 
-		//Outer most bounds of rocket using collision radius
-		int rocket_grid_left = (rocket.position.x - rocket.collision_radius) / grid.CELL_SIZE; //1
-		int rocket_grid_right = (rocket.position.x + rocket.collision_radius) / grid.CELL_SIZE; //1
-		int rocket_grid_top = (rocket.position.y - rocket.collision_radius) / grid.CELL_SIZE; //1
-		int rocket_grid_bottom = (rocket.position.y + rocket.collision_radius) / grid.CELL_SIZE; //1
+	}
+	//Wait for results on every future.
+	for each (const future<void> & fut in futs2)
+	{
+		fut.wait();
+	}
 
-		int grid_max = grid.CELL_SIZE * grid.NUM_CELLS;
+	//Update rockets
+	//give each thread the task to updateRockets. 
+	for (int i = 1; i <= testCount; i++)
+	{
+		futs.push_back(tp.enqueue([&, i]
+			{
+				updateRockets(i);
+			}));
 
-
-		//check if rocket is on the grid
-		if (rocket.position.x < grid_max - rocket.collision_radius && rocket.position.x > 0 &&
-			rocket.position.y < grid_max - rocket.collision_radius && rocket.position.y > 0)
-
-			//make sure to check for collisions within the current cell and one cell around the rocket.
-			for (int x = rocket_grid_left; x <= rocket_grid_right; x++) //1
-				for (int y = rocket_grid_top; y <= rocket_grid_bottom; y++) //1
-					for (Tank* tank : grid.cells[x][y]) //M
-					{
-						if (tank->active && (tank->allignment != rocket.allignment) && rocket.intersects(tank->position, tank->collision_radius)) //1
-						{
-							explosions.push_back(Explosion(&explosion, tank->position));
-
-							if (tank->hit(ROCKET_HIT_VALUE)) //1
-							{
-								smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
-							}
-
-							rocket.active = false;
-							break;
-						}
-					}
+	}
+	//Wait for results on every future.
+	for each (const future<void>& fut in futs)
+	{
+		fut.wait();
 	}
 
 	//Remove exploded rockets with remove erase idiom
@@ -269,10 +247,101 @@ void Game::update(float deltaTime)
 	explosions.erase(std::remove_if(explosions.begin(), explosions.end(), [](const Explosion& explosion) { return explosion.done(); }), explosions.end());
 }
 
+void Game::updateTanks(int i)
+{
+	int chunkSize = tanks.size() / testCount; // =319,75
+	
+	int mod = tanks.size() % testCount; // = 6
+
+	if (i <= mod)
+	{
+		chunkSize++;
+	}
+
+	//cout << chunkSize << endl;
+	int end = i * chunkSize;//1
+
+	for (int start = end - chunkSize; start < end; start++)
+	{
+		Tank& tank = tanks[start];
+		if (tank.active)
+		{
+			//Move tanks according to speed and nudges (see above) also reload
+			std::lock_guard<std::mutex> guard(myMutex);
+			tank.tick();
+			grid.move(&tank);
+			//Shoot at closest target if reloaded
+			if (tank.rocket_reloaded())
+			{
+				Tank& target = find_closest_enemy(tank);
+
+				rockets.push_back(Rocket(tank.position, (target.get_position() - tank.position).normalized() * 3, rocket_radius, tank.allignment, ((tank.allignment == RED) ? &rocket_red : &rocket_blue)));
+
+				tank.reload_rocket();
+			}
+		}
+	}
+}
+
+void Game::updateRockets(int i)
+{
+	int chunkSize = rockets.size() / testCount;
+
+	int mod = rockets.size() % testCount;
+
+	if (i <= mod)
+	{
+		chunkSize++;
+	}
+
+	//cout << chunkSize << endl;
+	int end = i * chunkSize;//1
+
+	for (int start = end - chunkSize; start < end; start++)
+	{
+		Rocket& rocket = rockets[start];//1
+
+		rocket.tick(); //1
+
+		//Outer most bounds of rocket using collision radius
+		int rocket_grid_left = (rocket.position.x - rocket.collision_radius) / grid.CELL_SIZE; //1
+		int rocket_grid_right = (rocket.position.x + rocket.collision_radius) / grid.CELL_SIZE; //1
+		int rocket_grid_top = (rocket.position.y - rocket.collision_radius) / grid.CELL_SIZE; //1
+		int rocket_grid_bottom = (rocket.position.y + rocket.collision_radius) / grid.CELL_SIZE; //1
+
+		int grid_max = grid.CELL_SIZE * grid.NUM_CELLS;
+
+		std::lock_guard<std::mutex> guard(myMutex);
+		//check if rocket is on the grid
+		if (rocket.position.x < grid_max - rocket.collision_radius && rocket.position.x > rocket.collision_radius &&
+			rocket.position.y < grid_max - rocket.collision_radius && rocket.position.y > rocket.collision_radius)
+			//make sure to check for collisions within the current cell and one cell around the rocket.
+			for (int x = rocket_grid_left; x <= rocket_grid_right; x++) //1
+				for (int y = rocket_grid_top; y <= rocket_grid_bottom; y++) //1
+					for (Tank* tank : grid.cells[x][y]) //M
+					{
+						if (tank->active && (tank->allignment != rocket.allignment) && rocket.intersects(tank->position, tank->collision_radius)) //1
+						{
+							explosions.push_back(Explosion(&explosion, tank->position));
+
+							if (tank->hit(ROCKET_HIT_VALUE)) //1
+							{
+								smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
+							}
+
+							rocket.active = false;
+							break;
+						}
+					}
+	}
+}
+
+
 bool CompareHealth(Tank& tank1, Tank& tank2)
 {
 	return tank1.health < tank2.health;
 }
+
 
 void Game::draw()
 {

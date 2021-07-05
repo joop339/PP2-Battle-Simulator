@@ -20,6 +20,8 @@ class Game
     void merge(vector<int>& left, vector<int>& right, vector<int>& sorted);
     void merge_sort(vector<int>& unsorted);
     void measure_performance();
+    void updateRockets(int i);
+    void updateTanks(int i);
 
     Tank& find_closest_enemy(Tank& current_tank);
 
