@@ -47,11 +47,10 @@ const static float tank_radius = 8.5f;
 const static float rocket_radius = 10.f;
 
 std::vector<std::future<void>> futs;
-std::vector<std::future<void>> futs2;
 
 const unsigned int threadCount = thread::hardware_concurrency(); //Asign threadCount based on available threads on this pc
 ThreadPool tp(threadCount);
-int testCount = 2;
+
 
 std::mutex myMutex;
 
@@ -89,12 +88,6 @@ void Game::init()
 		tanks.push_back(tankRed);
 		grid.add(&tankRed);
 	}
-
-	// Spawn Threads.
-	//for (int i = 0; i < threadCount; i++)
-	//{
-	//	futs.push_back(tp.enqueue([i]() { std::cout << "Hello from thread " << i << std::endl; }));
-	//}
 
 	particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
 	particle_beams.push_back(Particle_beam(vec2(80, 80), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
@@ -134,7 +127,7 @@ Tank& Game::find_closest_enemy(Tank& current_tank)
 
 }
 
-bool CompareAllignment(Tank& tank1, Tank& tank2)
+bool CompareAllignment(Tank& tank1, Tank& tank2) //Used for sorting the tanks blue to red by checking the way they're facing.
 {
 	if (tank1.allignment == BLUE && tank2.allignment == RED)
 	{
@@ -179,35 +172,21 @@ void Game::update(float deltaTime)
 		smoke.tick();
 	}
 
-	for (int i = 1; i <= testCount; i++)
-	{
-		futs2.push_back(tp.enqueue([&, i]
-			{
-				updateTanks(i);
-			}));
-
-	}
-	//Wait for results on every future.
-	for each (const future<void> & fut in futs2)
-	{
-		fut.wait();
-	}
-
-	//Update rockets
-	//give each thread the task to updateRockets. 
-	for (int i = 1; i <= testCount; i++)
+	for (int i = 1; i <= threadCount; i++) //devide functions over available threads.
 	{
 		futs.push_back(tp.enqueue([&, i]
 			{
+				updateTanks(i);
 				updateRockets(i);
 			}));
 
 	}
 	//Wait for results on every future.
-	for each (const future<void>& fut in futs)
+	for each (const future<void> & fut in futs)
 	{
 		fut.wait();
 	}
+
 
 	//Remove exploded rockets with remove erase idiom
 	rockets.erase(std::remove_if(rockets.begin(), rockets.end(), [](const Rocket& rocket) { return !rocket.active; }), rockets.end());
@@ -249,11 +228,11 @@ void Game::update(float deltaTime)
 
 void Game::updateTanks(int i)
 {
-	int chunkSize = tanks.size() / testCount; // =319,75
+	int chunkSize = tanks.size() / threadCount; // =319,75
 	
-	int mod = tanks.size() % testCount; // = 6
+	int mod = tanks.size() % threadCount; // = 6
 
-	if (i <= mod)
+	if (i <= mod) //used to devide the number of tanks evenly over threads. 
 	{
 		chunkSize++;
 	}
@@ -285,9 +264,9 @@ void Game::updateTanks(int i)
 
 void Game::updateRockets(int i)
 {
-	int chunkSize = rockets.size() / testCount;
+	int chunkSize = rockets.size() / threadCount;
 
-	int mod = rockets.size() % testCount;
+	int mod = rockets.size() % threadCount;
 
 	if (i <= mod)
 	{
@@ -364,7 +343,7 @@ void Game::draw()
 
 	for (Rocket& rocket : rockets)
 	{
-		rocket.draw(screen);
+		rocket.draw(screen);;
 	}
 
 	for (Smoke& smoke : smokes)
